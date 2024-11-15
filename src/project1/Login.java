@@ -273,6 +273,7 @@ public class Login extends javax.swing.JFrame {
         if (status > 0) {
             // Login berhasil
             JOptionPane.showMessageDialog(this, "Sukses Login");
+            Logging.logActivity("Login sukses: User " + user + " dengan level " + lv);
 
             switch (lv) {
                 case "kasir" -> {
@@ -302,10 +303,13 @@ public class Login extends javax.swing.JFrame {
                                                 GAGAL Login
                                                 Username/Password tidak valid""");
             txt_password.requestFocus();
+            Logging.logActivity("Login gagal: Username/Password tidak valid untuk user " + user);
         }
 
     } catch (SQLException e) {
-        e.printStackTrace(); // Tambahkan ini agar dapat melihat error
+        e.printStackTrace();
+        JOptionPane.showMessageDialog(this, "Error: " + e.getMessage());
+        Logging.logActivity("Error " + e.getMessage());
     }
     }
     } 

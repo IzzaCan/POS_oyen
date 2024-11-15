@@ -17,7 +17,7 @@ import javax.swing.JOptionPane;
 
 public class EditProduk extends javax.swing.JDialog {
     
-    private int Id;
+    private int id;
     private String KP;
     private String NP;
     private String GP;
@@ -285,31 +285,39 @@ public class EditProduk extends javax.swing.JDialog {
         try {
             Connection l = DatabaseConnection.Go();
             String Q = "UPDATE products "
-                    + "SET product_name = ?, product_image = ?, product_category = ?, product_supplier = ?, "
-                    + "product_price_s = ?, product_price_b = ?, product_stock = ? WHERE p"
-                    + "roduct_code = ?";
+                    + "SET product_code = ?, product_name = ?, product_image = ?, product_category = ?, product_supplier = ?, "
+                    + "product_price_s = ?, product_price_b = ?, product_stock = ? WHERE id = ?";
 
-            PreparedStatement ps = l.prepareStatement(Q);
-            ps.setString(1, txt_namaproduk.getText());
-            ps.setString(2, txt_gambar.getText());
 
-            if (cmb_kategori.getSelectedItem() != null && cmb_supplier.getSelectedItem() != null) {
-                String[] X = cmb_kategori.getSelectedItem().toString().split("-");
-                String[] Y = cmb_supplier.getSelectedItem().toString().split("-");
-                ps.setInt(3, Integer.parseInt(X[0]));
-                ps.setInt(4, Integer.parseInt(Y[0]));
-            }
+        PreparedStatement ps = l.prepareStatement(Q);
 
-            ps.setDouble(5, Double.parseDouble(txt_hargajual.getText()));
-            ps.setDouble(6, Double.parseDouble(txt_hargabeli.getText()));
-            ps.setInt(7, Integer.parseInt(txt_stok.getText()));
-            ps.setString(8, txt_kodeproduk.getText()); 
+        // Mengisi parameter sesuai urutan
+        ps.setString(1, txt_kodeproduk.getText()); // Mengisi kode produk yang dapat diubah
+        ps.setString(2, txt_namaproduk.getText());
+        ps.setString(3, txt_gambar.getText());
+
+        // Mengambil id kategori dan supplier dari combo box
+        String[] X = cmb_kategori.getSelectedItem().toString().split("-");
+        String[] Y = cmb_supplier.getSelectedItem().toString().split("-");
+        ps.setInt(4, Integer.parseInt(X[0])); // Kategori ID
+        ps.setInt(5, Integer.parseInt(Y[0])); // Supplier ID
+
+        // Mengisi harga jual, harga beli, dan stok
+        ps.setDouble(6, Double.parseDouble(txt_hargajual.getText()));
+        ps.setDouble(7, Double.parseDouble(txt_hargabeli.getText()));
+        ps.setInt(8, Integer.parseInt(txt_stok.getText()));
+
+        // Menggunakan ID unik untuk kondisi WHERE
+        ps.setInt(9, getId()); // ID unik produk sebagai syarat pembaruan
             
             int rowsUpdated = ps.executeUpdate();
 
             if (rowsUpdated > 0) {
                 HalamanAdmin.viewDataProduct(""); 
                 JOptionPane.showMessageDialog(this, "Data berhasil diperbarui");
+                
+                // Menambahkan log aktivitas untuk mencatat produk yang berhasil diperbarui
+                Logging.logActivity("Produk dengan ID = " + getId() + ", Berhasil Di Ubah");
             } else {
                 JOptionPane.showMessageDialog(this, "Tidak ada data yang ditemukan");
             }
@@ -324,7 +332,7 @@ public class EditProduk extends javax.swing.JDialog {
     }//GEN-LAST:event_bt_tidakActionPerformed
 
     private void jButton1ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton1ActionPerformed
-                JFileChooser jfc = new JFileChooser();
+        JFileChooser jfc = new JFileChooser();
         jfc.setDialogTitle("Pilih Gambar Produk");
 
         // Show the dialog and get the user's selection
@@ -423,12 +431,12 @@ public class EditProduk extends javax.swing.JDialog {
     private javax.swing.JTextField txt_namaproduk;
     private javax.swing.JTextField txt_stok;
     // End of variables declaration//GEN-END:variables
-public int getId() {
-        return Id;
+    public int getId() {
+        return id;
     }
 
     public void setId(int id) {
-        this.Id = Id;
+        this.id = id;
     }
 
     public String getNP() {

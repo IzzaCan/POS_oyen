@@ -304,12 +304,15 @@ public class TambahProduk extends javax.swing.JDialog {
             ps.setDouble(7, Double.parseDouble(txt_hargabeli.getText()));
             ps.setInt(8, Integer.parseInt(txt_stok.getText()));
             ps.executeUpdate();
+            
+            // Menambahkan log aktivitas untuk mencatat produk yang berhasil ditambahkan
+            Logging.logActivity("Produk berhasil ditambahkan: Kode Produk = " + txt_kodeproduk.getText() + ", Nama Produk = " + txt_namaproduk.getText());
 
             HalamanAdmin.viewDataProduct("");
             JOptionPane.showMessageDialog(this, "Data berhasil disimpan");
 
         } catch (NumberFormatException | SQLException e) {
-            //System.out.println(e.getMessage());
+            JOptionPane.showMessageDialog(this, "Terjadi kesalahan: " + e.getMessage()); 
         }
 
     }//GEN-LAST:event_bt_simpanActionPerformed

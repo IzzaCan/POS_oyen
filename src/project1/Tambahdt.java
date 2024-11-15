@@ -211,10 +211,14 @@ public class Tambahdt extends javax.swing.JDialog {
             PS.setString(3, pass);
             PS.setString(4, level);
             PS.executeUpdate();
+            
+             // Menambahkan log aktivitas untuk mencatat data yang berhasil disimpan
+            Logging.logActivity("Data berhasil ditambahkan: Nama = " + name + ", Username = " + user + ", Level = " + level);
 
             HalamanAdmin.viewData("");
             JOptionPane.showMessageDialog(this, "Data berhasil disimpan");
             txt_nama.requestFocus();
+            
         } catch (Exception e) {
              JOptionPane.showMessageDialog(this, "Terjadi kesalahan: " + e.getMessage());
         }
