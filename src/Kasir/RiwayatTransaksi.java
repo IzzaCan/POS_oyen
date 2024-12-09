@@ -4,17 +4,30 @@
  */
 package Kasir;
 
+import java.sql.Connection;  // Untuk koneksi ke database
+import java.awt.Frame;
+import java.sql.SQLException;
+import java.sql.DriverManager;  // Untuk mengelola koneksi database
+import java.sql.PreparedStatement;  // Untuk menyiapkan query SQL dengan parameter
+import java.sql.ResultSet;  // Untuk menyimpan hasil query
+import java.sql.Statement;
+import java.sql.SQLException;  // Untuk menangani pengecualian SQL
+import javax.swing.JOptionPane;
+import javax.swing.table.DefaultTableModel;
+
 /**
  *
  * @author putra
  */
-public class LaporanKeuangan extends javax.swing.JFrame {
+public class RiwayatTransaksi extends javax.swing.JFrame {
 
     /**
-     * Creates new form LaporanKeuangan
+     * Creates new form RiwayatTransaksi
      */
-    public LaporanKeuangan() {
+    public RiwayatTransaksi() {
         initComponents();
+        viewRiwayatProduk("");
+        viewRiwayatKasir("");
     }
 
     /**
@@ -41,13 +54,18 @@ public class LaporanKeuangan extends javax.swing.JFrame {
         Main = new javax.swing.JPanel();
         jPanel1 = new javax.swing.JPanel();
         jLabel3 = new javax.swing.JLabel();
-        jTextField1 = new javax.swing.JTextField();
-        jPanel2 = new javax.swing.JPanel();
+        pencarian = new javax.swing.JTextField();
+        btn_cari = new javax.swing.JButton();
+        jTabbedPane1 = new javax.swing.JTabbedPane();
+        jPanel3 = new javax.swing.JPanel();
         jScrollPane1 = new javax.swing.JScrollPane();
         jTable1 = new javax.swing.JTable();
+        jPanel4 = new javax.swing.JPanel();
+        jScrollPane2 = new javax.swing.JScrollPane();
+        jTable2 = new javax.swing.JTable();
+        jPanel2 = new javax.swing.JPanel();
 
         setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
-        getContentPane().setLayout(new java.awt.CardLayout());
 
         bg.setBackground(new java.awt.Color(255, 255, 255));
 
@@ -140,7 +158,7 @@ public class LaporanKeuangan extends javax.swing.JFrame {
         Header.setBackground(new java.awt.Color(255, 255, 255));
 
         jLabel1.setFont(new java.awt.Font("Arial", 1, 24)); // NOI18N
-        jLabel1.setText("Laporan Keuangan");
+        jLabel1.setText("Riwayat Transaksi");
 
         javax.swing.GroupLayout HeaderLayout = new javax.swing.GroupLayout(Header);
         Header.setLayout(HeaderLayout);
@@ -168,9 +186,22 @@ public class LaporanKeuangan extends javax.swing.JFrame {
         jLabel3.setFont(new java.awt.Font("Calibri", 0, 18)); // NOI18N
         jLabel3.setText("Tanggal :");
 
-        jTextField1.addActionListener(new java.awt.event.ActionListener() {
+        pencarian.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
-                jTextField1ActionPerformed(evt);
+                pencarianActionPerformed(evt);
+            }
+        });
+        pencarian.addKeyListener(new java.awt.event.KeyAdapter() {
+            public void keyReleased(java.awt.event.KeyEvent evt) {
+                pencarianKeyReleased(evt);
+            }
+        });
+
+        btn_cari.setText("Cari");
+        btn_cari.setToolTipText("");
+        btn_cari.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                btn_cariActionPerformed(evt);
             }
         });
 
@@ -182,8 +213,10 @@ public class LaporanKeuangan extends javax.swing.JFrame {
                 .addContainerGap()
                 .addComponent(jLabel3)
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
-                .addComponent(jTextField1, javax.swing.GroupLayout.PREFERRED_SIZE, 253, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addContainerGap(458, Short.MAX_VALUE))
+                .addComponent(pencarian, javax.swing.GroupLayout.PREFERRED_SIZE, 253, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
+                .addComponent(btn_cari)
+                .addContainerGap(316, Short.MAX_VALUE))
         );
         jPanel1Layout.setVerticalGroup(
             jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
@@ -191,26 +224,14 @@ public class LaporanKeuangan extends javax.swing.JFrame {
                 .addContainerGap()
                 .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
                     .addComponent(jLabel3, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                    .addComponent(jTextField1, javax.swing.GroupLayout.DEFAULT_SIZE, 31, Short.MAX_VALUE))
+                    .addComponent(pencarian, javax.swing.GroupLayout.DEFAULT_SIZE, 31, Short.MAX_VALUE)
+                    .addComponent(btn_cari))
                 .addContainerGap())
         );
 
         Main.add(jPanel1, java.awt.BorderLayout.PAGE_START);
 
-        jPanel2.setBackground(new java.awt.Color(255, 255, 255));
-
-        javax.swing.GroupLayout jPanel2Layout = new javax.swing.GroupLayout(jPanel2);
-        jPanel2.setLayout(jPanel2Layout);
-        jPanel2Layout.setHorizontalGroup(
-            jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGap(0, 795, Short.MAX_VALUE)
-        );
-        jPanel2Layout.setVerticalGroup(
-            jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGap(0, 100, Short.MAX_VALUE)
-        );
-
-        Main.add(jPanel2, java.awt.BorderLayout.PAGE_END);
+        jPanel3.setLayout(new java.awt.BorderLayout());
 
         jTable1.setModel(new javax.swing.table.DefaultTableModel(
             new Object [][] {
@@ -220,12 +241,50 @@ public class LaporanKeuangan extends javax.swing.JFrame {
                 {null, null, null, null, null, null}
             },
             new String [] {
-                "ID", "Tanggal", "Kode Produk", "Nama Produk", "Jumlah", "Harga"
+                "ID", "Tanggal", "Nama Produk", "Jumlah", "Harga Satuan", "Total"
             }
         ));
         jScrollPane1.setViewportView(jTable1);
 
-        Main.add(jScrollPane1, java.awt.BorderLayout.CENTER);
+        jPanel3.add(jScrollPane1, java.awt.BorderLayout.CENTER);
+
+        jTabbedPane1.addTab("Produk", jPanel3);
+
+        jPanel4.setLayout(new java.awt.BorderLayout());
+
+        jTable2.setModel(new javax.swing.table.DefaultTableModel(
+            new Object [][] {
+                {null, null, null, null, null},
+                {null, null, null, null, null},
+                {null, null, null, null, null},
+                {null, null, null, null, null}
+            },
+            new String [] {
+                "ID", "Nama Kasir", "Tanggal", "Total Penjualan", "Total Pendapatan"
+            }
+        ));
+        jScrollPane2.setViewportView(jTable2);
+
+        jPanel4.add(jScrollPane2, java.awt.BorderLayout.CENTER);
+
+        jTabbedPane1.addTab("Kasir", jPanel4);
+
+        Main.add(jTabbedPane1, java.awt.BorderLayout.CENTER);
+
+        jPanel2.setBackground(new java.awt.Color(255, 255, 255));
+
+        javax.swing.GroupLayout jPanel2Layout = new javax.swing.GroupLayout(jPanel2);
+        jPanel2.setLayout(jPanel2Layout);
+        jPanel2Layout.setHorizontalGroup(
+            jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGap(0, 737, Short.MAX_VALUE)
+        );
+        jPanel2Layout.setVerticalGroup(
+            jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGap(0, 100, Short.MAX_VALUE)
+        );
+
+        Main.add(jPanel2, java.awt.BorderLayout.PAGE_END);
 
         javax.swing.GroupLayout bgLayout = new javax.swing.GroupLayout(bg);
         bg.setLayout(bgLayout);
@@ -248,14 +307,18 @@ public class LaporanKeuangan extends javax.swing.JFrame {
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                 .addComponent(jSeparator1, javax.swing.GroupLayout.PREFERRED_SIZE, 4, javax.swing.GroupLayout.PREFERRED_SIZE)
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addComponent(Main, javax.swing.GroupLayout.DEFAULT_SIZE, 528, Short.MAX_VALUE))
+                .addComponent(Main, javax.swing.GroupLayout.DEFAULT_SIZE, 529, Short.MAX_VALUE))
             .addComponent(sidePane, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
         );
 
-        getContentPane().add(bg, "card2");
+        getContentPane().add(bg, java.awt.BorderLayout.CENTER);
 
         pack();
     }// </editor-fold>//GEN-END:initComponents
+
+    private void jButton6ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton6ActionPerformed
+
+    }//GEN-LAST:event_jButton6ActionPerformed
 
     private void jButton2ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton2ActionPerformed
         this.setVisible(false);
@@ -264,20 +327,39 @@ public class LaporanKeuangan extends javax.swing.JFrame {
     }//GEN-LAST:event_jButton2ActionPerformed
 
     private void jButton3ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton3ActionPerformed
-        // TODO add your handling code here:
+        this.setVisible(false);
+        LaporanKeuangan LK = new LaporanKeuangan();
+        LK.setVisible(true);
     }//GEN-LAST:event_jButton3ActionPerformed
-
-    private void jTextField1ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jTextField1ActionPerformed
-        // TODO add your handling code here:
-    }//GEN-LAST:event_jTextField1ActionPerformed
-
-    private void jButton6ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton6ActionPerformed
-
-    }//GEN-LAST:event_jButton6ActionPerformed
 
     private void jButton4ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton4ActionPerformed
         // TODO add your handling code here:
     }//GEN-LAST:event_jButton4ActionPerformed
+
+    private void pencarianActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_pencarianActionPerformed
+        // TODO add your handling code here:
+    }//GEN-LAST:event_pencarianActionPerformed
+
+    private void btn_cariActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btn_cariActionPerformed
+       
+    }//GEN-LAST:event_btn_cariActionPerformed
+
+    private void pencarianKeyReleased(java.awt.event.KeyEvent evt) {//GEN-FIRST:event_pencarianKeyReleased
+      String key = pencarian.getText().trim(); // Ambil input dari JTextField pencarian
+    String where = "";  // Kondisi untuk filter
+
+    if (!key.isEmpty()) {
+        // Jika inputnya sesuai dengan format tanggal
+        if (key.matches("\\d{4}-\\d{2}-\\d{2}")) {  // Format tanggal YYYY-MM-DD
+            where = "WHERE tanggal LIKE '" + key + "'";  // Filter berdasarkan tanggal
+        } else {
+            where = "WHERE nama_produk LIKE '%" + key + "%'";  // Filter berdasarkan nama produk
+        }
+    }
+
+    // Memanggil fungsi viewRiwayatProduk dengan kondisi pencarian
+    viewRiwayatProduk(where);
+    }//GEN-LAST:event_pencarianKeyReleased
 
     /**
      * @param args the command line arguments
@@ -296,20 +378,20 @@ public class LaporanKeuangan extends javax.swing.JFrame {
                 }
             }
         } catch (ClassNotFoundException ex) {
-            java.util.logging.Logger.getLogger(LaporanKeuangan.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
+            java.util.logging.Logger.getLogger(RiwayatTransaksi.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
         } catch (InstantiationException ex) {
-            java.util.logging.Logger.getLogger(LaporanKeuangan.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
+            java.util.logging.Logger.getLogger(RiwayatTransaksi.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
         } catch (IllegalAccessException ex) {
-            java.util.logging.Logger.getLogger(LaporanKeuangan.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
+            java.util.logging.Logger.getLogger(RiwayatTransaksi.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
         } catch (javax.swing.UnsupportedLookAndFeelException ex) {
-            java.util.logging.Logger.getLogger(LaporanKeuangan.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
+            java.util.logging.Logger.getLogger(RiwayatTransaksi.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
         }
         //</editor-fold>
 
         /* Create and display the form */
         java.awt.EventQueue.invokeLater(new Runnable() {
             public void run() {
-                new LaporanKeuangan().setVisible(true);
+                new RiwayatTransaksi().setVisible(true);
             }
         });
     }
@@ -318,6 +400,7 @@ public class LaporanKeuangan extends javax.swing.JFrame {
     private javax.swing.JPanel Header;
     private javax.swing.JPanel Main;
     private javax.swing.JPanel bg;
+    private javax.swing.JButton btn_cari;
     private javax.swing.JButton jButton2;
     private javax.swing.JButton jButton3;
     private javax.swing.JButton jButton4;
@@ -327,12 +410,91 @@ public class LaporanKeuangan extends javax.swing.JFrame {
     private javax.swing.JLabel jLabel3;
     private javax.swing.JPanel jPanel1;
     private javax.swing.JPanel jPanel2;
+    private javax.swing.JPanel jPanel3;
+    private javax.swing.JPanel jPanel4;
     private javax.swing.JScrollPane jScrollPane1;
+    private javax.swing.JScrollPane jScrollPane2;
     private javax.swing.JSeparator jSeparator1;
     private javax.swing.JSeparator jSeparator3;
-    private static javax.swing.JTable jTable1;
-    private javax.swing.JTextField jTextField1;
+    private javax.swing.JTabbedPane jTabbedPane1;
+    private javax.swing.JTable jTable1;
+    private javax.swing.JTable jTable2;
     private javax.swing.JLabel labelUser;
+    private javax.swing.JTextField pencarian;
     private javax.swing.JPanel sidePane;
     // End of variables declaration//GEN-END:variables
+public void viewRiwayatProduk(String where) {
+    try {
+        DefaultTableModel m = (DefaultTableModel) jTable1.getModel();
+        m.getDataVector().removeAllElements();
+
+        // Establish the connection to the database
+        Connection K = app.Koneksi.Go();
+        Statement S = K.createStatement();
+
+        // The query to fetch data from riwayat_transaksi, applying the 'where' condition
+        String Q = "SELECT * FROM riwayat_transaksi " + where;
+        ResultSet R = S.executeQuery(Q);
+
+        int n = 1;
+        while (R.next()) {
+            // Fetch data from the result set
+            String idTransaksi = R.getString("id_transaksi");
+            String tanggal = R.getString("tanggal");
+            String namaProduk = R.getString("nama_produk");
+            String jumlah = R.getString("jumlah");
+            String hargaSatuan = R.getString("harga_satuan");
+            String totalHarga = R.getString("total_harga");
+
+            // Add the data to the table model
+            Object[] data = {idTransaksi, tanggal, namaProduk, jumlah, hargaSatuan, totalHarga};
+            m.addRow(data); // Adding the row to the table
+            n++;
+        }
+
+        // Hide the first column (id_transaksi)
+        jTable1.getColumnModel().getColumn(0).setMinWidth(0);
+        jTable1.getColumnModel().getColumn(0).setMaxWidth(0);
+
+    } catch (Exception e) {
+        e.printStackTrace(); // Handle errors by printing the stack trace
+    }
+}
+
+public void viewRiwayatKasir(String where) {
+    try {
+        DefaultTableModel m = (DefaultTableModel) jTable2.getModel(); // Assuming jTable1 is the table in your GUI
+        m.getDataVector().removeAllElements(); // Clear existing data from the table
+
+        // Establish the connection to the database
+        Connection K = app.Koneksi.Go();
+        Statement S = K.createStatement();
+
+        // The query to fetch data from penjualan_per_kasir, applying the 'where' condition
+        String Q = "SELECT * FROM penjualan_per_kasir " + where;
+        ResultSet R = S.executeQuery(Q);
+
+        int n = 1;
+        while (R.next()) {
+            // Fetch data from the result set
+            String idKasir = R.getString("id_kasir");
+            String tanggal = R.getString("tanggal");
+            String totalPenjualan = R.getString("total_penjualan");
+
+            // Add the data to the table model
+            Object[] data = {idKasir, tanggal, totalPenjualan};
+            m.addRow(data); // Adding the row to the table
+            n++;
+        }
+
+        // Hide the first column (id_kasir)
+        jTable2.getColumnModel().getColumn(0).setMinWidth(0);
+        jTable2.getColumnModel().getColumn(0).setMaxWidth(0);
+
+    } catch (Exception e) {
+        e.printStackTrace(); // Handle errors by printing the stack trace
+    }
+}
+
+
 }
