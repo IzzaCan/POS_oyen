@@ -4,19 +4,15 @@
  */
 package Kasir;
 
-import app.Koneksi;
 import app.Logging;
 import app.Login;
 import app.UserProfile;
-import java.sql.Connection;
-import javax.swing.JOptionPane;
-import java.sql.Statement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
 import javax.swing.JOptionPane;
 import javax.swing.event.TableModelEvent;
 import javax.swing.event.TableModelListener;
 import javax.swing.table.DefaultTableModel;
+
+
 
 
 public class HalamanKasir extends javax.swing.JFrame {
@@ -588,13 +584,21 @@ private void tabelset() {
     }//GEN-LAST:event_btn_transaksiActionPerformed
 
     private void jTextField1ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jTextField1ActionPerformed
-String kode = jTextField1.getText().trim();  // Ambil kode produk dari jTextField1 dan pastikan tidak kosong
+     String kode = jTextField1.getText().trim(); 
+        DefaultTableModel model = (DefaultTableModel) jTable1.getModel();
+        model.addTableModelListener(new TableModelListener() {
+            @Override
+            public void tableChanged(TableModelEvent e) {
+                int row = e.getFirstRow();
+                int column = e.getColumn();
+                if (row >= 0 && column >= 0) {
+                    updateharga();
+                }}});
+    
     if (kode.isEmpty()) {
         JOptionPane.showMessageDialog(this, "Kode produk tidak boleh kosong.");
         return;
     }
-
-    javax.swing.table.DefaultTableModel model = (javax.swing.table.DefaultTableModel) jTable1.getModel();
     
     try {
         // Mengambil data produk berdasarkan kode
@@ -603,7 +607,6 @@ String kode = jTextField1.getText().trim();  // Ambil kode produk dari jTextFiel
         java.sql.Statement S = K.createStatement();
         java.sql.ResultSet R = S.executeQuery(Q);
         
-        // Jika produk ditemukan, tambahkan ke tabel
         if (R.next()) {
             int id = R.getInt("id");
             String pName = R.getString("product_name");
@@ -616,32 +619,33 @@ String kode = jTextField1.getText().trim();  // Ambil kode produk dari jTextFiel
             
             // Periksa jika produk sudah ada di tabel
             for (int i = 0; i < dt; i++) {
-                int dt_id = Integer.parseInt(jTable1.getValueAt(i, 0).toString());
-                int dt_QTY = Integer.parseInt(jTable1.getValueAt(i, 2).toString());
-                if (dt_id == id) {
-                    ada = true;
-                    baris = i;
-                    QTY = dt_QTY;
-                    break;
+                Object qtyObj = jTable1.getValueAt(i, 2); // Ambil nilai QTY
+                if (qtyObj != null) {
+                    int dt_id = Integer.parseInt(jTable1.getValueAt(i, 0).toString());
+                    int dt_QTY = Integer.parseInt(qtyObj.toString());
+                    if (dt_id == id) {
+                        ada = true;
+                        baris = i;
+                        QTY = dt_QTY;
+                        break;
+                    }
                 }
             }
 
-            // Jika produk sudah ada, update jumlahnya
             if (ada) {
+                // Update qty jika produk sudah ada
                 jTable1.setValueAt(QTY + 1, baris, 2);
             } else {
-                // Jika produk belum ada, tambahkan ke tabel
+                // Tambah produk baru jika belum ada
                 Object[] data = {id, pName, 1, pPr};
                 model.addRow(data);
             }
             
-            updateharga();  // Update harga setelah menambah produk
+            updateharga(); // Perbarui harga setelah menambah produk
         } else {
-            // Jika produk tidak ditemukan di database
             JOptionPane.showMessageDialog(this, "Produk dengan kode " + kode + " tidak ditemukan.");
         }
     } catch (java.sql.SQLException e) {
-        // Tangani kesalahan SQL jika terjadi
         JOptionPane.showMessageDialog(this, "Error: " + e.getMessage());
     }
     }//GEN-LAST:event_jTextField1ActionPerformed
@@ -836,31 +840,21 @@ private void updateharga() {
     try {
         double totalHarga = 0;
         int rowcount = jTable1.getRowCount();
-        
         for (int i = 0; i < rowcount; i++) {
-            // Ambil nilai dari kolom 2 (QTY) dan kolom 3 (Harga)
-            Object qtyObj = jTable1.getValueAt(i, 2); // QTY
-            Object priceObj = jTable1.getValueAt(i, 3); // Harga
+            Object qtyObj = jTable1.getValueAt(i, 2); // Ambil nilai QTY
+            Object priceObj = jTable1.getValueAt(i, 3); // Ambil nilai Harga
 
-            // Debugging: Print nilai yang diambil
-            System.out.println("Qty: " + qtyObj);
-            System.out.println("Price: " + priceObj);
-
-            // Periksa apakah nilai QTY dan Harga tidak null dan valid
             if (qtyObj != null && priceObj != null) {
                 double QTY = Double.parseDouble(qtyObj.toString());
                 double PRC = Double.parseDouble(priceObj.toString());
-                totalHarga += (QTY * PRC); // Hitung total harga
+                totalHarga += (QTY * PRC);
             }
         }
-        jLabel15.setText("Rp " + (long) totalHarga); // Menampilkan total harga
+        jLabel15.setText("Rp " + (long) totalHarga);
     } catch (NumberFormatException e) {
-        // Tangani error jika ada nilai yang tidak valid
-        System.out.println("Error dalam konversi angka: " + e.getMessage());
+        System.out.println("Error parsing number: " + e.getMessage());
     }
 }
-
-
 
 
 
