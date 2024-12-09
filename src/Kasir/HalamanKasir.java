@@ -4,7 +4,19 @@
  */
 package Kasir;
 
+import app.Koneksi;
+import app.Logging;
+import app.Login;
 import app.UserProfile;
+import java.sql.Connection;
+import javax.swing.JOptionPane;
+import java.sql.Statement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import javax.swing.JOptionPane;
+import javax.swing.event.TableModelEvent;
+import javax.swing.event.TableModelListener;
+import javax.swing.table.DefaultTableModel;
 
 
 public class HalamanKasir extends javax.swing.JFrame {
@@ -18,8 +30,27 @@ public HalamanKasir() {
 public HalamanKasir(UserProfile p) {
     this.p = p;
     initComponents();
+    labelUser.setText(p.getFullname() + "(" + p.getLevel() + ")");
+    tabelset();
 }
+ 
+private void tabelset() {
+    // Menyembunyikan kolom pertama di jTable1
+    jTable1.getColumnModel().getColumn(0).setMinWidth(0);
+    jTable1.getColumnModel().getColumn(0).setMaxWidth(0);
     
+    // Menyembunyikan kolom pertama di jTable2
+    jTable2.getColumnModel().getColumn(0).setMinWidth(0);
+    jTable2.getColumnModel().getColumn(0).setMaxWidth(0);
+    
+    // Mengatur lebar kolom lainnya di jTable2
+    jTable2.getColumnModel().getColumn(2).setMinWidth(50);
+    jTable2.getColumnModel().getColumn(2).setMaxWidth(50);
+    
+    jTable2.getColumnModel().getColumn(3).setMinWidth(80);
+    jTable2.getColumnModel().getColumn(3).setMaxWidth(80);
+}
+
 
     /**
      * This method is called from within the constructor to initialize the form.
@@ -335,6 +366,11 @@ public HalamanKasir(UserProfile p) {
                 jTextField1ActionPerformed(evt);
             }
         });
+        jTextField1.addKeyListener(new java.awt.event.KeyAdapter() {
+            public void keyReleased(java.awt.event.KeyEvent evt) {
+                jTextField1KeyReleased(evt);
+            }
+        });
 
         btn_hapus.setBackground(new java.awt.Color(255, 0, 0));
         btn_hapus.setFont(new java.awt.Font("Segoe UI", 1, 14)); // NOI18N
@@ -538,7 +574,7 @@ public HalamanKasir(UserProfile p) {
     }// </editor-fold>//GEN-END:initComponents
 
     private void btn_hapusActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btn_hapusActionPerformed
-        // TODO add your handling code here:
+        removeProductFromCart();
     }//GEN-LAST:event_btn_hapusActionPerformed
 
     private void btn_laporanKeuanganActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btn_laporanKeuanganActionPerformed
@@ -552,32 +588,161 @@ public HalamanKasir(UserProfile p) {
     }//GEN-LAST:event_btn_transaksiActionPerformed
 
     private void jTextField1ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jTextField1ActionPerformed
+String kode = jTextField1.getText().trim();  // Ambil kode produk dari jTextField1 dan pastikan tidak kosong
+    if (kode.isEmpty()) {
+        JOptionPane.showMessageDialog(this, "Kode produk tidak boleh kosong.");
+        return;
+    }
+
+    javax.swing.table.DefaultTableModel model = (javax.swing.table.DefaultTableModel) jTable1.getModel();
+    
+    try {
+        // Mengambil data produk berdasarkan kode
+        java.sql.Connection K = app.Koneksi.Go();
+        String Q = "SELECT id, product_name, product_price_s, product_stock FROM products WHERE product_code='" + kode + "'";
+        java.sql.Statement S = K.createStatement();
+        java.sql.ResultSet R = S.executeQuery(Q);
         
+        // Jika produk ditemukan, tambahkan ke tabel
+        if (R.next()) {
+            int id = R.getInt("id");
+            String pName = R.getString("product_name");
+            double pPr = R.getDouble("product_price_s");
+            int dt = jTable1.getRowCount();
+            
+            boolean ada = false;
+            int baris = 0;
+            int QTY = 0;
+            
+            // Periksa jika produk sudah ada di tabel
+            for (int i = 0; i < dt; i++) {
+                int dt_id = Integer.parseInt(jTable1.getValueAt(i, 0).toString());
+                int dt_QTY = Integer.parseInt(jTable1.getValueAt(i, 2).toString());
+                if (dt_id == id) {
+                    ada = true;
+                    baris = i;
+                    QTY = dt_QTY;
+                    break;
+                }
+            }
+
+            // Jika produk sudah ada, update jumlahnya
+            if (ada) {
+                jTable1.setValueAt(QTY + 1, baris, 2);
+            } else {
+                // Jika produk belum ada, tambahkan ke tabel
+                Object[] data = {id, pName, 1, pPr};
+                model.addRow(data);
+            }
+            
+            updateharga();  // Update harga setelah menambah produk
+        } else {
+            // Jika produk tidak ditemukan di database
+            JOptionPane.showMessageDialog(this, "Produk dengan kode " + kode + " tidak ditemukan.");
+        }
+    } catch (java.sql.SQLException e) {
+        // Tangani kesalahan SQL jika terjadi
+        JOptionPane.showMessageDialog(this, "Error: " + e.getMessage());
+    }
     }//GEN-LAST:event_jTextField1ActionPerformed
 
     private void btn_logoutActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btn_logoutActionPerformed
+        int response = JOptionPane.showConfirmDialog(this, "Apakah Anda yakin ingin logout?", "Konfirmasi Logout", JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE);
 
+        if (response == JOptionPane.YES_OPTION) {
+            // Logging aktivitas logout
+            Logging.logActivity("Pengguna melakukan logout.");
+            // Menutup halaman admin dan membuka halaman login jika pengguna memilih "Yes"
+            this.setVisible(false);
+            Login L = new Login();
+            L.setVisible(true);
+        }
     }//GEN-LAST:event_btn_logoutActionPerformed
 
     private void btn_cetakActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btn_cetakActionPerformed
-        // TODO add your handling code here:
+    String totalText = jLabel15.getText();  // Format: "Rp 12000"
+    String[] totalParts = totalText.split(" ");
+    long totalHarga = Long.parseLong(totalParts[1]);
+
+    String uangText = uang.getText();
+    long uangBayar = 0;
+    if (!uangText.isEmpty()) {
+        uangBayar = Long.parseLong(uangText);
+    }
+
+    long uangKembali = uangBayar - totalHarga;
+    
+    // Menampilkan total harga dan kembalian
+    jLabel15.setText("Rp " + totalHarga);
+    jLabel16.setText("Rp " + uangKembali);
+
+    if (uangBayar < totalHarga) {
+        javax.swing.JOptionPane.showMessageDialog(this, "Uang yang dibayar kurang dari total!");
+        btn_checkout.setEnabled(false);
+    } else {
+        btn_checkout.setEnabled(true);
+    }
     }//GEN-LAST:event_btn_cetakActionPerformed
 
     private void btn_checkoutActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btn_checkoutActionPerformed
-        // TODO add your handling code here:
+    int confirm = javax.swing.JOptionPane.showConfirmDialog(this, "Apakah Anda yakin ingin mengkonfirmasi Pesanan ini?",
+    "Konfirmasi Pesanan", javax.swing.JOptionPane.YES_NO_OPTION);
+    if (confirm == javax.swing.JOptionPane.YES_OPTION) {
+        javax.swing.table.DefaultTableModel model = (javax.swing.table.DefaultTableModel) jTable1.getModel();
+        int rowCount = model.getRowCount();
+        if (rowCount > 0) {
+            java.util.Date date = new java.util.Date();
+            java.sql.Date sqlDate = new java.sql.Date(date.getTime());
+
+            try {
+                java.sql.Connection con = app.Koneksi.Go();
+                java.sql.Statement stmt = con.createStatement();
+
+                String getLastIdQuery = "SELECT MAX(id) AS last_id FROM laporan_keuangan";
+                java.sql.ResultSet rs = stmt.executeQuery(getLastIdQuery);
+                int Id = 0;
+                if (rs.next()) {
+                    Id = rs.getInt("last_id");
+                }
+                for (int i = 0; i < rowCount; i++) {
+                    String idProduk = model.getValueAt(i, 0).toString();
+                    String namaProduk = model.getValueAt(i, 1).toString();
+                    String jumlah = model.getValueAt(i, 2).toString();
+                    String harga = model.getValueAt(i, 3).toString();
+
+                    int newId = Id + i + 1;
+                    String query = "INSERT INTO laporan_keuangan (id, tanggal, kode_produk, nama_produk, jumlah, harga, status_transaksi) "
+                            + "VALUES (" + newId + ", '" + sqlDate + "', '" + idProduk + "', '" + namaProduk + "', '" + jumlah + "', '" + harga + "', 'LUNAS')";
+                    stmt.executeUpdate(query);
+                }
+
+                model.setRowCount(0);  // Mengosongkan tabel setelah transaksi
+                updateharga();  // Memperbarui total harga
+                javax.swing.JOptionPane.showMessageDialog(this, "Pesanan Anda berhasil dikonfirmasi dan dicatat di laporan keuangan.");
+            } catch (java.sql.SQLException e) {
+                javax.swing.JOptionPane.showMessageDialog(this, "Gagal mencatat aktivitas ke laporan keuangan: " + e.getMessage());
+            }
+        } else {
+            javax.swing.JOptionPane.showMessageDialog(this, "Tidak ada aktivitas yang perlu dihapus.");
+        }
+    }     
     }//GEN-LAST:event_btn_checkoutActionPerformed
-
+    
     private void uangActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_uangActionPerformed
-
+        
     }//GEN-LAST:event_uangActionPerformed
 
     private void uangKeyReleased(java.awt.event.KeyEvent evt) {//GEN-FIRST:event_uangKeyReleased
-
+        UangPembayaran();
     }//GEN-LAST:event_uangKeyReleased
 
     private void jLabel15MouseClicked(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_jLabel15MouseClicked
-
+        
     }//GEN-LAST:event_jLabel15MouseClicked
+
+    private void jTextField1KeyReleased(java.awt.event.KeyEvent evt) {//GEN-FIRST:event_jTextField1KeyReleased
+        // TODO add your handling code here:
+    }//GEN-LAST:event_jTextField1KeyReleased
 
     /**
      * @param args the command line arguments
@@ -667,4 +832,83 @@ public HalamanKasir(UserProfile p) {
     private javax.swing.JPanel sidePane;
     private javax.swing.JTextField uang;
     // End of variables declaration//GEN-END:variables
+private void updateharga() {
+    try {
+        double totalHarga = 0;
+        int rowcount = jTable1.getRowCount();
+        
+        for (int i = 0; i < rowcount; i++) {
+            // Ambil nilai dari kolom 2 (QTY) dan kolom 3 (Harga)
+            Object qtyObj = jTable1.getValueAt(i, 2); // QTY
+            Object priceObj = jTable1.getValueAt(i, 3); // Harga
+
+            // Debugging: Print nilai yang diambil
+            System.out.println("Qty: " + qtyObj);
+            System.out.println("Price: " + priceObj);
+
+            // Periksa apakah nilai QTY dan Harga tidak null dan valid
+            if (qtyObj != null && priceObj != null) {
+                double QTY = Double.parseDouble(qtyObj.toString());
+                double PRC = Double.parseDouble(priceObj.toString());
+                totalHarga += (QTY * PRC); // Hitung total harga
+            }
+        }
+        jLabel15.setText("Rp " + (long) totalHarga); // Menampilkan total harga
+    } catch (NumberFormatException e) {
+        // Tangani error jika ada nilai yang tidak valid
+        System.out.println("Error dalam konversi angka: " + e.getMessage());
+    }
+}
+
+
+
+
+
+private void removeProductFromCart() {
+    int idx = jTable1.getSelectedRow();
+    if (idx != -1) {
+        javax.swing.table.DefaultTableModel m = (javax.swing.table.DefaultTableModel) jTable1.getModel();
+        
+        // Ambil nilai dari kolom QTY dan Harga
+        Object qtyObj = m.getValueAt(idx, 2);  // Ambil jumlah
+        Object priceObj = m.getValueAt(idx, 3);  // Ambil harga
+        
+        // Cek apakah nilai QTY dan Harga tidak null
+        if (qtyObj != null && priceObj != null) {
+            m.removeRow(idx);  // Hapus baris yang dipilih
+            updateharga();  // Update harga setelah baris dihapus
+        } else {
+            javax.swing.JOptionPane.showMessageDialog(this, "Data pada baris ini tidak valid.");
+        }
+    } else {
+        javax.swing.JOptionPane.showMessageDialog(this, "Anda belum memilih data.");
+    }
+}
+
+
+
+    private void UangPembayaran() {
+        int r = jTable1.getRowCount();
+        if (r > 0) {
+            String lbl = jLabel5.getText(); //Rp 12000
+            String[] arrayHarga = lbl.split(" ");
+            long harga = Long.parseLong(arrayHarga[1]);
+
+            String bayar = uang.getText();
+            if (!bayar.isEmpty()) {
+                long uangbayar = Long.parseLong(bayar);
+                long uangkembali = uangbayar - harga;
+                jLabel12.setText("Rp " + uangkembali);
+
+                if (uangbayar >= harga) {
+                    btn_checkout.setEnabled(true);
+                } else {
+                    btn_checkout.setEnabled(false);
+                }
+            } else {
+                jLabel12.setText("Rp " + 0);
+                btn_checkout.setEnabled(false);
+            }
+        }
+    }
 }
